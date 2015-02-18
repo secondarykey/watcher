@@ -1,9 +1,9 @@
 package main
 
 import (
-	"./watcher"
 	"flag"
 	"fmt"
+	"github.com/secondarykey/watcher"
 	"os"
 )
 

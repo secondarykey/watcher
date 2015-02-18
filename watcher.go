@@ -29,9 +29,9 @@ func Run(target, ignore, cmd string, duration int, patrol bool) {
 	cmds := strings.Split(cmd, " ")
 	for {
 		select {
-		case t1 := <-time.After(time.Duration(duration) * time.Second):
+		case timer := <-time.After(time.Duration(duration) * time.Second):
 			if patrol {
-				fmt.Println(t1)
+				fmt.Println(timer)
 			}
 			mode = false
 			go search(target)
@@ -90,15 +90,18 @@ func updateFileInfo(rootPath, path string) error {
 
 func isSpike(fullPath string, fInfo os.FileInfo) bool {
 
-	if !mode {
-		src := targetFiles[fullPath]
-		if src != nil {
-			if fInfo.ModTime() != src.ModTime() {
-				return true
-			}
-		} else {
+	//update mode
+	if mode {
+		return false
+	}
+
+	src := targetFiles[fullPath]
+	if src != nil {
+		if fInfo.ModTime() != src.ModTime() {
 			return true
 		}
+	} else {
+		return true
 	}
 	return false
 }
