@@ -2,19 +2,48 @@ package watcher
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
+	"os"
 	"testing"
+	"time"
 )
 
-func testIsSpike(t *testing.T) {
-	Convey("Given some integer with a starting value", t, func() {
-		x := 1
-		Convey("When the integer is incremented", func() {
-			x++
+func TestIsSpike(t *testing.T) {
 
-			Convey("The value should be greater by one", func() {
-				So(x, ShouldEqual, 2)
+	Convey("Initialize", t, func() {
+
+		targetFiles = make(map[string]os.FileInfo)
+		mode = true
+		spike = make(chan string)
+
+		fileName := "work.test"
+		os.Create(fileName)
+		defer os.Remove(fileName)
+
+		fInfo, _ := os.Stat(fileName)
+		targetFiles[fileName] = fInfo
+
+		Convey("mode true", func() {
+			So(isSpike(fileName, fInfo), ShouldBeFalse)
+		})
+
+		Convey("mode false", func() {
+			mode = false
+			So(isSpike(fileName, fInfo), ShouldBeFalse)
+			Convey("modiefied", func() {
+
+				ctime := time.Now().Local()
+
+				os.Chtimes(fileName, ctime, ctime)
+				newInfo, _ := os.Stat(fileName)
+				So(isSpike(fileName, newInfo), ShouldBeTrue)
+				targetFiles[fileName] = newInfo
+				So(isSpike(fileName, newInfo), ShouldBeFalse)
+			})
+
+			Convey("New File", func() {
 			})
 		})
+
 	})
 }
 
