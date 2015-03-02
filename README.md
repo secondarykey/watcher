@@ -12,4 +12,4 @@ Argument
   -version "watcher version"
 
 Warning:
-  Source in the [Qiita](qiita.com/secondarykey/items/6fa481cbdee24632e80e) can be found [here](github.com/secondarykey/watcher/releases/tag/original)
+  Source in the [Qiita](http://qiita.com/secondarykey/items/6fa481cbdee24632e80e "Qiita") can be found [here](https://github.com/secondarykey/watcher/releases/tag/original "original tag")
