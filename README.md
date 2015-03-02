@@ -6,9 +6,9 @@ $GOPATH/bin/watcher "go version"
 If the specified path is updated, and then run the specified command.
 
 Argument
-  -target "search path:default 'os.Getwd()'"
-  -ignore "ignore path(; split):default 'tmp;cache;.swp'"
-  -version "watcher version"
+target :"search path:default 'os.Getwd()'"
+ignore :"ignore path(; split):default 'tmp;cache;.swp'"
+version:"watcher version"
 
 Warning
 
