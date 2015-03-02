@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-var version = "0.1.0"
+var version = "0.2.0"
 var show_version = flag.Bool("version", false, "show version")
 var Usage = func() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])

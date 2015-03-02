@@ -1,16 +1,12 @@
 *watcher* is file modified time monitoring tools.
 ```
-go get github.com/secondarykey/watcher
-cd $GOPATH/src/github.com/secondarykey/watcher/cmd/watcher
-go install 
+go get -u github.com/secondarykey/watcher
 
-watcher "go version"
+$GOPATH/bin/watcher "go version"
 
-run command
+If the specified path is updated, and then run the specified command .
 
 Argument
-  -target "search path"
-  -patrol "write search date"
-  -duration "search duration"
-  -ignore "ignore path"
+  -target "search path:default workdir"
+  -ignore "ignore path(; split)"
   -version "watcher version"
