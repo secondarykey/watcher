@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var target string
@@ -156,6 +157,20 @@ func ignore(triger string) bool {
 }
 
 func command() {
+	wait := make(chan bool)
+	go progress(wait)
 	out, _ := exec.Command(cmd, cmd_argS...).CombinedOutput()
+	wait <- true
 	log.Println(string(out))
 }
+
+func progress(wait chan bool) {
+    for {
+        select {
+        case <-wait:
+            return
+        case <-time.After(time.Second * 2):
+            fmt.Printf("#")
+        }
+    }
+} 
