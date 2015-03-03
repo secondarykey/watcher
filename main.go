@@ -110,7 +110,7 @@ func monitor(watcher *fsnotify.Watcher) {
 	for {
 		select {
 		case event := <-watcher.Events:
-			notify(event)
+			go notify(event)
 		case err := <-watcher.Errors:
 			log.Println("error:", err)
 		}
