@@ -66,10 +66,12 @@ func run() {
 
 	go monitor(watcher)
 
+	log.Println("Search start")
 	listDirs, err := getListDir(target)
 	if err != nil {
 		panic(err)
 	}
+	log.Println("Search end")
 
 	for _, elm := range listDirs {
 		err = watcher.Add(elm)
@@ -83,6 +85,7 @@ func run() {
 }
 
 func getListDir(search string) ([]string, error) {
+
 	list := make([]string, 0)
 	list = append(list, search)
 
@@ -139,9 +142,9 @@ func notify(event fsnotify.Event) {
 		event.Op&fsnotify.Rename == fsnotify.Rename ||
 		event.Op&fsnotify.Chmod == fsnotify.Chmod {
 		log.Println(event.Name, event)
-		log.Println("running the command", cmd, cmd_argS)
+		log.Println("********************** running command (", cmd, cmd_argS, ")")
 		command()
-		log.Println("end the command")
+		log.Println("********************** ending  command")
 	}
 	return
 }
@@ -161,16 +164,18 @@ func command() {
 	go progress(wait)
 	out, _ := exec.Command(cmd, cmd_argS...).CombinedOutput()
 	wait <- true
-	log.Println(string(out))
+	fmt.Println("********************** command output(", cmd, cmd_argS, ")")
+	fmt.Println(string(out))
+	fmt.Println("**********************")
 }
 
 func progress(wait chan bool) {
-    for {
-        select {
-        case <-wait:
-            return
-        case <-time.After(time.Second * 2):
-            fmt.Printf("#")
-        }
-    }
-} 
+	for {
+		select {
+		case <-wait:
+			return
+		case <-time.After(time.Second * 2):
+			fmt.Printf("#")
+		}
+	}
+}
