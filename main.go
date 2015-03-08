@@ -64,7 +64,7 @@ func run() {
 	defer watcher.Close()
 	done := make(chan bool)
 
-	go monitor(watcher)
+	go monitor(watcher, done)
 
 	log.Println("Search start")
 	listDirs, err := getListDir(target)
@@ -110,13 +110,15 @@ func getListDir(search string) ([]string, error) {
 	return list, nil
 }
 
-func monitor(watcher *fsnotify.Watcher) {
+func monitor(watcher *fsnotify.Watcher, done chan bool) {
 	for {
 		select {
 		case event := <-watcher.Events:
 			go notify(event)
 		case err := <-watcher.Errors:
 			log.Println("error:", err)
+			done <- false
+			return
 		}
 	}
 }
@@ -164,7 +166,8 @@ func command() {
 	go progress(wait)
 	out, _ := exec.Command(cmd, cmd_argS...).CombinedOutput()
 	wait <- true
-	fmt.Println("********************** command output(", cmd, cmd_argS, ")")
+	fmt.Println("")
+	fmt.Println("********************** command output")
 	fmt.Println(string(out))
 	fmt.Println("**********************")
 }
