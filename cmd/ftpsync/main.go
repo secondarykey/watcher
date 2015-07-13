@@ -32,6 +32,7 @@ type ftpinfo struct {
 	Username   string
 	Password   string
 	Servername string
+	Directory  string
 }
 
 func main() {
@@ -59,20 +60,39 @@ func main() {
 	}
 
 	ftpFile := ".ftppath"
-	if info := createFtpfile(ftpFile); info != nil {
+	info := createFtpfile(ftpFile)
+	if info != nil {
 		fmt.Printf("Conneting : %s\n", info.Servername)
 		if !connectFtp(info) {
 			//Remove ?
-			fmt.Printf("ConnectError[%s]\n", info.Servername)
+			fmt.Printf("Connect Error[%s]\n", info.Servername)
 			os.Exit(-1)
 		}
 	} else {
 		os.Exit(-1)
 	}
 
+	err := ftp.Cwd("/")
+	fmt.Println(err)
+
 	//Check Update File(.ftpfile)
 	// first upload Y/N
-	//
+	//Servername
+	curpath, err := ftp.Pwd()
+	fmt.Println(curpath)
+
+	files, err := ftp.List("")
+	if err != nil {
+		os.Exit(-1)
+	}
+	fmt.Println(files)
+
+	// func (ftp *FTP) Stor(path string, r io.Reader) (err error)
+
+	// func (ftp *FTP) Retr(path string, retrFn RetrFunc) (s string, err error)
+
+	// ok = ftp.Dele("kaigo/common.php")
+	// error(550) = ftp.Dele("kaigo")
 
 	run()
 }
@@ -104,6 +124,9 @@ func createFtpfile(path string) *ftpinfo {
 		fmt.Printf("Servername[{ip}:{port}]:")
 		fmt.Scan(&info.Servername)
 
+		fmt.Printf("Mapping Directory:")
+		fmt.Scan(&info.Directory)
+
 		fmt.Println(info)
 		data, err := json.Marshal(info)
 		if err != nil {
@@ -122,16 +145,15 @@ func createFtpfile(path string) *ftpinfo {
 	return &info
 }
 
+var ftp *goftp.FTP
+
 func connectFtp(info *ftpinfo) bool {
 	fmt.Println(info)
 	var err error
-	var ftp *goftp.FTP
 	if ftp, err = goftp.Connect(info.Servername); err != nil {
 		fmt.Println("FTP Connect Error")
 		return false
 	}
-	// not be
-	defer ftp.Close()
 
 	if err = ftp.Login(info.Username, info.Password); err != nil {
 		fmt.Println("FTP Login Error")
@@ -220,7 +242,7 @@ func notify(event fsnotify.Event) {
 		event.Op&fsnotify.Rename == fsnotify.Rename ||
 		event.Op&fsnotify.Chmod == fsnotify.Chmod {
 		log.Println(event.Name, event)
-		ftp()
+		ftpcheck()
 	}
 	return
 }
@@ -235,7 +257,7 @@ func ignore(triger string) bool {
 	return false
 }
 
-func ftp() {
+func ftpcheck() {
 }
 
 func progress(wait chan bool) {
