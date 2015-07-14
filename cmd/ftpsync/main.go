@@ -13,6 +13,7 @@ import (
 	_ "os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	_ "strings"
 	"time"
 )
@@ -137,13 +138,15 @@ func writeFileInfo(path string, dataMap map[string]string) error {
 }
 
 func createIgnore(path string) bool {
+
 	fp, err := os.Open(path)
 	if err != nil {
 		return false
 	}
 	defer fp.Close()
+
 	scanner := bufio.NewScanner(fp)
-	ignoreS = make([]string, 30)
+	ignoreS = make([]string, 0, 30)
 	for scanner.Scan() {
 		ignoreS = append(ignoreS, scanner.Text())
 	}
@@ -304,7 +307,6 @@ func monitor(watcher *fsnotify.Watcher, done chan bool) {
 
 func notify(event fsnotify.Event) {
 
-	fmt.Println(event.Name)
 	if ignore(event.Name) {
 		return
 	}
@@ -314,7 +316,11 @@ func notify(event fsnotify.Event) {
 		event.Op&fsnotify.Remove == fsnotify.Remove ||
 		event.Op&fsnotify.Rename == fsnotify.Rename ||
 		event.Op&fsnotify.Chmod == fsnotify.Chmod {
-		fmt.Println(event.Name, event)
+
+		newEvt := strings.Replace(event.Name, "\\", "/", -1)
+		newStr := strings.Replace(newEvt, target, "", 1)
+
+		fmt.Println(newStr, event.Op)
 		ftpcheck()
 	}
 	return
