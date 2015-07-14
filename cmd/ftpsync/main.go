@@ -2,13 +2,13 @@ package main
 
 import (
 	"bufio"
+	"encoding/gob"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/dutchcoders/goftp"
 	"github.com/go-fsnotify/fsnotify"
 	"io/ioutil"
-	"log"
 	"os"
 	_ "os/exec"
 	"path/filepath"
@@ -19,8 +19,9 @@ import (
 
 var target string
 var ignoreS []string
+var ftp *goftp.FTP
 
-var version = "0.0.0"
+var version = "0.0.2"
 var show_version = flag.Bool("version", false, "show version")
 
 var Usage = func() {
@@ -45,6 +46,7 @@ func main() {
 		fmt.Printf("version: %s\n", version)
 		return
 	}
+	target = "c:/Users/Administrator/Documents/NetBeansProjects/kaigo/kaigo"
 
 	//READ ignore file(.ignore)
 	ignoreFile := ".ignore"
@@ -72,20 +74,26 @@ func main() {
 		os.Exit(-1)
 	}
 
-	err := ftp.Cwd("/")
-	fmt.Println(err)
+	// First upload?
+	// Remove FTP File?
+	//
+
+	dataMap := make(map[string]string)
+	err := getFileMap(dataMap, target)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
 
 	//Check Update File(.ftpfile)
 	// first upload Y/N
 	//Servername
-	curpath, err := ftp.Pwd()
-	fmt.Println(curpath)
 
-	files, err := ftp.List("")
-	if err != nil {
-		os.Exit(-1)
-	}
-	fmt.Println(files)
+	//files, err := ftp.List("")
+	//if err != nil {
+	//os.Exit(-1)
+	//}
+	//fmt.Println(files)
 
 	// func (ftp *FTP) Stor(path string, r io.Reader) (err error)
 
@@ -95,6 +103,37 @@ func main() {
 	// error(550) = ftp.Dele("kaigo")
 
 	run()
+}
+
+func readFileInfo(path string) (map[string]string, error) {
+	dataFile, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer dataFile.Close()
+	dataDecoder := gob.NewDecoder(dataFile)
+
+	newMap := make(map[string]string)
+	err = dataDecoder.Decode(&newMap)
+	if err != nil {
+		return nil, err
+	}
+	return newMap, nil
+}
+
+func writeFileInfo(path string, dataMap map[string]string) error {
+	dataFile, err := os.Create(".fileinfo")
+	if err != nil {
+		return err
+	}
+	defer dataFile.Close()
+	dataEncoder := gob.NewEncoder(dataFile)
+
+	err = dataEncoder.Encode(dataMap)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func createIgnore(path string) bool {
@@ -124,7 +163,7 @@ func createFtpfile(path string) *ftpinfo {
 		fmt.Printf("Servername[{ip}:{port}]:")
 		fmt.Scan(&info.Servername)
 
-		fmt.Printf("Mapping Directory:")
+		fmt.Printf("Mapping FTP Directory:")
 		fmt.Scan(&info.Directory)
 
 		fmt.Println(info)
@@ -145,18 +184,25 @@ func createFtpfile(path string) *ftpinfo {
 	return &info
 }
 
-var ftp *goftp.FTP
-
 func connectFtp(info *ftpinfo) bool {
 	fmt.Println(info)
 	var err error
 	if ftp, err = goftp.Connect(info.Servername); err != nil {
 		fmt.Println("FTP Connect Error")
+		fmt.Println(err)
 		return false
 	}
 
 	if err = ftp.Login(info.Username, info.Password); err != nil {
 		fmt.Println("FTP Login Error")
+		fmt.Println(err)
+		return false
+	}
+
+	err = ftp.Cwd(info.Directory)
+	if err != nil {
+		fmt.Println("Could not Change Directory")
+		fmt.Println(err)
 		return false
 	}
 
@@ -164,6 +210,7 @@ func connectFtp(info *ftpinfo) bool {
 }
 
 func run() {
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		panic(err)
@@ -173,12 +220,12 @@ func run() {
 
 	go monitor(watcher, done)
 
-	log.Println("Search start")
+	fmt.Println("Search start")
 	listDirs, err := getListDir(target)
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Search end")
+	fmt.Println("Search end")
 
 	for _, elm := range listDirs {
 		err = watcher.Add(elm)
@@ -187,8 +234,33 @@ func run() {
 		}
 	}
 
-	log.Println("Watch:", target)
+	fmt.Println("Watch:", target)
 	<-done
+}
+
+func getFileMap(dataMap map[string]string, search string) error {
+
+	fis, err := ioutil.ReadDir(search)
+	if err != nil {
+		return err
+	}
+
+	for _, fi := range fis {
+
+		newPath := filepath.Join(search, fi.Name())
+		stamp := fi.ModTime().Format("2006/01/02 15:04:05 MST")
+
+		dataMap[newPath] = stamp
+		if !fi.IsDir() {
+			continue
+		}
+
+		err := getFileMap(dataMap, newPath)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func getListDir(search string) ([]string, error) {
@@ -223,7 +295,7 @@ func monitor(watcher *fsnotify.Watcher, done chan bool) {
 		case event := <-watcher.Events:
 			go notify(event)
 		case err := <-watcher.Errors:
-			log.Println("error:", err)
+			fmt.Println("error:", err)
 			done <- false
 			return
 		}
@@ -232,6 +304,7 @@ func monitor(watcher *fsnotify.Watcher, done chan bool) {
 
 func notify(event fsnotify.Event) {
 
+	fmt.Println(event.Name)
 	if ignore(event.Name) {
 		return
 	}
@@ -241,7 +314,7 @@ func notify(event fsnotify.Event) {
 		event.Op&fsnotify.Remove == fsnotify.Remove ||
 		event.Op&fsnotify.Rename == fsnotify.Rename ||
 		event.Op&fsnotify.Chmod == fsnotify.Chmod {
-		log.Println(event.Name, event)
+		fmt.Println(event.Name, event)
 		ftpcheck()
 	}
 	return
